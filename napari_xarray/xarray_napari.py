@@ -9,23 +9,12 @@ see: https://napari.org/docs/plugins/hook_specifications.html
 Replace code below accordingly.  For complete documentation see:
 https://napari.org/docs/plugins/for_plugin_developers.html
 """
-from enum import Enum
+import json
 
-import xarray as xr
 import numpy as np
-from PyQt5.QtWidgets import (
-    QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QVBoxLayout,
-    QLabel,
-)
+import xarray as xr
 from napari_plugin_engine import napari_hook_implementation
-
-
-class LayerType(Enum):
-    Image = "image"
-    Labels = "labels"
+from pathlib import Path
 
 
 @napari_hook_implementation
@@ -80,33 +69,16 @@ def reader_function(path: str):
         Both "meta", and "layer_type" are optional. napari will default to
         layer_type=="image" if not provided
     """
-    layer_type = "image"
-    labels_flags = ["seg", "mask", "segmentation", "labels"]
+    label_flags = ["seg", "mask", "segmentation", "labels"]
+    channel_dim = "wavelength"
 
-    class LayerTypeDialog(QDialog):
-        nonlocal layer_type
-
-        def __init__(self, parent=None):
-            super(LayerTypeDialog, self).__init__(parent)
-
-            txt = QLabel("Layer type is ambiguous, please select a type")
-
-            self.combo = QComboBox()
-            for layer_type_ in LayerType:
-                self.combo.addItem(layer_type_.name, layer_type_.value)
-            self.combo.currentIndexChanged.connect(self.set_layer_type)
-
-            box = QDialogButtonBox(QDialogButtonBox.Ok)
-            box.accepted.connect(self.accept)
-
-            layout = QVBoxLayout(self)
-            layout.addWidget(txt)
-            layout.addWidget(self.combo)
-            layout.addWidget(box)
-
-        def set_layer_type(self):
-            nonlocal layer_type
-            layer_type = self.combo.currentData()
+    try:
+        with open(Path.home() / ".napari-xarray-config.json", "r") as f:
+            config = json.load(f)
+            label_flags = config.get("label_flags", label_flags)
+            channel_dim = config.get("channel_dim", channel_dim)
+    except IOError:
+        pass
 
     if isinstance(path, list):
         raise NotImplementedError("multiple paths not accepted yet")
@@ -115,27 +87,24 @@ def reader_function(path: str):
 
     if data.dtype == np.bool:
         layer_type = "labels"
-    elif any(x in path for x in labels_flags):
+    elif any(x in path for x in label_flags):
         layer_type = "labels"
     else:
-        layer_type = "images"
-    # else:
-    # ambiguous
-    # choose_layer_gui = LayerTypeDialog()
-    # choose_layer_gui.exec_()
+        layer_type = "image"
 
-    if "wavelength" in data.dims:
+    if channel_dim in data.dims:
         layer_data = []
-        for wvl in data.wavelength.values:
-            layer_tpl = (data.sel(wavelength=wvl).values, {"name": wvl}, layer_type)
+        for wvl in data[channel_dim].values:
+            layer_tpl = (
+                data.sel(**{channel_dim: wvl}).values,
+                {"name": wvl},
+                layer_type,
+            )
             layer_data.append(layer_tpl)
     else:
-        layer_data = [(data, {}, layer_type)]
+        # optional kwargs for the corresponding viewer.add_* method
+        # https://napari.org/docs/api/napari.components.html#module-napari.components.add_layers_mixin
+        add_kwargs = {}
+        layer_data = [(data, add_kwargs, layer_type)]
 
-    # optional kwargs for the corresponding viewer.add_* method
-    # https://napari.org/docs/api/napari.components.html#module-napari.components.add_layers_mixin
-    # add_kwargs = {}
-
-    # layer_type = "image"  # optional, default is "image"
     return layer_data
-    # return [(data, add_kwargs, layer_type)]
