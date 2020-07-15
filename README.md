@@ -1,4 +1,4 @@
-# napari-xarray-napari
+# napari-xarray
 
 [![License](https://img.shields.io/pypi/l/napari-xarray-napari.svg?color=green)](https://github.com/napari/napari-xarray-napari/raw/master/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-xarray-napari.svg?color=green)](https://pypi.org/project/napari-xarray-napari)
@@ -22,9 +22,9 @@ https://napari.org/docs/plugins/index.html
 
 ## Installation
 
-You can install `napari-xarray-napari` via [pip]:
+You can install `napari-xarray` via [pip]:
 
-    pip install napari-xarray-napari
+    pip install napari-xarray
 
 ## Contributing
 
@@ -34,7 +34,7 @@ the coverage at least stays the same before you submit a pull request.
 ## License
 
 Distributed under the terms of the [BSD-3] license,
-"napari-xarray-napari" is free and open source software
+"napari-xarray" is free and open source software
 
 ## Issues
 
