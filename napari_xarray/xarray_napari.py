@@ -9,8 +9,23 @@ see: https://napari.org/docs/plugins/hook_specifications.html
 Replace code below accordingly.  For complete documentation see:
 https://napari.org/docs/plugins/for_plugin_developers.html
 """
+from enum import Enum
+
+import xarray as xr
 import numpy as np
+from PyQt5.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QVBoxLayout,
+    QLabel,
+)
 from napari_plugin_engine import napari_hook_implementation
+
+
+class LayerType(Enum):
+    Image = "image"
+    Labels = "labels"
 
 
 @napari_hook_implementation
@@ -35,14 +50,15 @@ def napari_get_reader(path):
         path = path[0]
 
     # if we know we cannot read the file, we immediately return None.
-    if not path.endswith(".npy"):
-        return None
+    # if not path.endswith(".npy"):
+    #     return None
 
-    # otherwise we return the *function* that can read ``path``.
-    return reader_function
+    if path.endswith(".nc"):
+        # otherwise we return the *function* that can read ``path``.
+        return reader_function
 
 
-def reader_function(path):
+def reader_function(path: str):
     """Take a path or list of paths and return a list of LayerData tuples.
 
     Readers are expected to return data as a list of tuples, where each tuple
@@ -64,16 +80,62 @@ def reader_function(path):
         Both "meta", and "layer_type" are optional. napari will default to
         layer_type=="image" if not provided
     """
-    # handle both a string and a list of strings
-    paths = [path] if isinstance(path, str) else path
-    # load all files into array
-    arrays = [np.load(_path) for _path in paths]
-    # stack arrays into single array
-    data = np.squeeze(np.stack(arrays))
+    layer_type = "image"
+    labels_flags = ["seg", "mask", "segmentation", "labels"]
+
+    class LayerTypeDialog(QDialog):
+        nonlocal layer_type
+
+        def __init__(self, parent=None):
+            super(LayerTypeDialog, self).__init__(parent)
+
+            txt = QLabel("Layer type is ambiguous, please select a type")
+
+            self.combo = QComboBox()
+            for layer_type_ in LayerType:
+                self.combo.addItem(layer_type_.name, layer_type_.value)
+            self.combo.currentIndexChanged.connect(self.set_layer_type)
+
+            box = QDialogButtonBox(QDialogButtonBox.Ok)
+            box.accepted.connect(self.accept)
+
+            layout = QVBoxLayout(self)
+            layout.addWidget(txt)
+            layout.addWidget(self.combo)
+            layout.addWidget(box)
+
+        def set_layer_type(self):
+            nonlocal layer_type
+            layer_type = self.combo.currentData()
+
+    if isinstance(path, list):
+        raise NotImplementedError("multiple paths not accepted yet")
+
+    data = xr.load_dataarray(path)
+
+    if data.dtype == np.bool:
+        layer_type = "labels"
+    elif any(x in path for x in labels_flags):
+        layer_type = "labels"
+    else:
+        layer_type = "images"
+    # else:
+    # ambiguous
+    # choose_layer_gui = LayerTypeDialog()
+    # choose_layer_gui.exec_()
+
+    if "wavelength" in data.dims:
+        layer_data = []
+        for wvl in data.wavelength.values:
+            layer_tpl = (data.sel(wavelength=wvl).values, {"name": wvl}, layer_type)
+            layer_data.append(layer_tpl)
+    else:
+        layer_data = [(data, {}, layer_type)]
 
     # optional kwargs for the corresponding viewer.add_* method
     # https://napari.org/docs/api/napari.components.html#module-napari.components.add_layers_mixin
-    add_kwargs = {}
+    # add_kwargs = {}
 
-    layer_type = "image"  # optional, default is "image"
-    return [(data, add_kwargs, layer_type)]
+    # layer_type = "image"  # optional, default is "image"
+    return layer_data
+    # return [(data, add_kwargs, layer_type)]

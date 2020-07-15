@@ -22,7 +22,7 @@ with open('requirements.txt') as f:
 
 
 # https://github.com/pypa/setuptools_scm
-use_scm = {"write_to": "napari_xarray_napari/_version.py"}
+use_scm = {"write_to": "napari_xarray/_version.py"}
 
 setup(
     name='napari-xarray',
@@ -54,7 +54,7 @@ setup(
     ],
     entry_points={
         'napari.plugin': [
-            'xarray-napari = napari_xarray_napari',
+            'xarray-napari = napari_xarray',
         ],
     },
 )

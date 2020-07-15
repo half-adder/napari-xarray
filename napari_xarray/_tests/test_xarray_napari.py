@@ -1,5 +1,5 @@
 import numpy as np
-from napari_xarray_napari import napari_get_reader
+from napari_xarray import napari_get_reader
 
 
 # tmp_path is a pytest fixture
