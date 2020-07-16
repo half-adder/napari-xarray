@@ -33,6 +33,15 @@ You can install `napari-xarray` via [pip]:
 Contributions are very welcome. Tests can be run with [tox], please ensure
 the coverage at least stays the same before you submit a pull request.
 
+### Set up a dev environment
+
+Clone this repo, make a new virtual environment, then inside the new directory:
+
+    pip install -e .
+    pip install -r dev-requirements.txt
+  
+You should then be able to run the code and the tests. 
+
 ## License
 
 Distributed under the terms of the [BSD-3] license,
