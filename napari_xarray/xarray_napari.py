@@ -1,20 +1,20 @@
 """
-This module is an example of a barebones numpy reader plugin for napari.
+This module is an xarray reader plugin for napari.
 
 It implements the ``napari_get_reader`` hook specification, (to create
 a reader plugin) but your plugin may choose to implement any of the hook
 specifications offered by napari.
 see: https://napari.org/docs/plugins/hook_specifications.html
 
-Replace code below accordingly.  For complete documentation see:
+For complete documentation see:
 https://napari.org/docs/plugins/for_plugin_developers.html
 """
 import json
+from pathlib import Path
 
 import numpy as np
 import xarray as xr
 from napari_plugin_engine import napari_hook_implementation
-from pathlib import Path
 
 
 @napari_hook_implementation
@@ -37,10 +37,6 @@ def napari_get_reader(path):
         # if it is a list, it is assumed to be an image stack...
         # so we are only going to look at the first file.
         path = path[0]
-
-    # if we know we cannot read the file, we immediately return None.
-    # if not path.endswith(".npy"):
-    #     return None
 
     if path.endswith(".nc"):
         # otherwise we return the *function* that can read ``path``.

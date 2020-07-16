@@ -1,4 +1,5 @@
 napari-plugin-engine>=0.1.4
 numpy
 xarray
+netcdf4
 pyqt5
